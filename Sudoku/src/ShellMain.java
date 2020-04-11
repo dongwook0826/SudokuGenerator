@@ -40,7 +40,7 @@ public class ShellMain {
 			willContinue = sc.nextLine();
 			if(willContinue.length() == 0){
 				break;
-			}else if(willContinue.charAt(0) != 'y' || willContinue.charAt(0) != 'Y'){
+			}else if(willContinue.charAt(0) == 'y' || willContinue.charAt(0) == 'Y'){
 				continue;
 			}else break;
 		}
