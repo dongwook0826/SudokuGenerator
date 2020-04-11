@@ -1,9 +1,6 @@
 package sudoku;
 
-// trivial - easy - plain - handy - moderate 
-// - tricky - hard - vexatious - fiendish - divine
-// Splendid!
-// ...but isn't it divided too much?
+import java.util.Random;
 
 public class Sudoku {
 	
@@ -14,17 +11,24 @@ public class Sudoku {
 	protected boolean[][][] solBool;
 	// sdkBool, but only for solving process
 	protected boolean isValid;
+	protected boolean isSolved = false;
 	private boolean[][][][] branchImage;
-	private int[][] branchCell; // {rind, cind, chosen candidate, branch method indicator, area ind}
+	private int[][] branchCell;
+	// {rind, cind, chosen candidate, branch method indicator, area ind}
 	// branch indicator = -1,0,1,2 for cell-base, set-base over box,row,col
-	private int[] branchFactor;
+	// private int[] branchFactor;
+	private int branchDiff = 0;
 	
-	protected static final boolean[] EMPTY_CELL = {false, true, true, true, true,
-													true, true, true, true, true};
-	protected static final boolean[] FILLING_CELL = {true, false, false, false, false,
-													false, false, false, false, false};
+	static final boolean[] EMPTY_CELL = {
+		false, true, true, true, true,
+		true, true, true, true, true
+	};
+	static final boolean[] FILLING_CELL = {
+		true, false, false, false, false,
+		false, false, false, false, false
+	};
 	
-	protected static final int[][] CELL_BOX = {
+	static final int[][] CELL_BOX = {
 		{0,0,0,1,1,1,2,2,2},
 		{0,0,0,1,1,1,2,2,2},
 		{0,0,0,1,1,1,2,2,2},
@@ -35,7 +39,7 @@ public class Sudoku {
 		{6,6,6,7,7,7,8,8,8},
 		{6,6,6,7,7,7,8,8,8}
 	};
-	protected static final int[][][] BOX_CELL = {
+	static final int[][][] BOX_CELL = {
 		{{0,0},{0,1},{0,2},{1,0},{1,1},{1,2},{2,0},{2,1},{2,2}},
 		{{0,3},{0,4},{0,5},{1,3},{1,4},{1,5},{2,3},{2,4},{2,5}},
 		{{0,6},{0,7},{0,8},{1,6},{1,7},{1,8},{2,6},{2,7},{2,8}},
@@ -73,7 +77,8 @@ public class Sudoku {
 				if(!sdkBool[BOX_CELL[b][bi][0]][BOX_CELL[b][bi][1]][0]) // if not filled
 					continue;
 				int n=1;
-				while(!sdkBool[BOX_CELL[b][bi][0]][BOX_CELL[b][bi][1]][n]) n++; // n filled in the cell
+				while(!sdkBool[BOX_CELL[b][bi][0]][BOX_CELL[b][bi][1]][n])
+					n++; // n filled in the cell
 				for(int bj=bi+1; bj<BOX_CELL[b].length; bj++){
 					if(sdkBool[BOX_CELL[b][bj][0]][BOX_CELL[b][bj][1]][0]
 					&& sdkBool[BOX_CELL[b][bj][0]][BOX_CELL[b][bj][1]][n]){
@@ -109,11 +114,155 @@ public class Sudoku {
 		return true;
 	}
 	
+	//----------------------------from here, naive solving method---------------------------
+	
+	protected void naiveSolveSudoku(Random rand){ // search only one solution in naive way
+		
+		// copy onto solBool
+		solBool = new boolean[sdkBool.length][sdkBool[0].length][];
+		int emptyCellCnt = sdkBool.length * sdkBool[0].length;
+		for(int i=0; i<solBool.length; i++){
+			for(int j=0; j<solBool[i].length; j++){
+				solBool[i][j] = sdkBool[i][j].clone();
+			}
+		}
+		
+		// pencil-mark
+		for(int i=0; i<solBool.length; i++){
+			for(int j=0; j<solBool[i].length; j++){
+				if(!solBool[i][j][0]){
+					continue;
+				}emptyCellCnt--;
+				for(int n=1; n<solBool[i][j].length; n++){
+					if(!solBool[i][j][n]) continue;
+					erasePencilMark(i, j, n);
+				}
+			}
+		}
+		
+		branchImage = new boolean[emptyCellCnt][][][];
+		branchCell = new int[emptyCellCnt][];
+		// {rind, cind, chosen candidate} : only for naive solving
+		int branchCnt = 0;
+		boolean branchChangeStacked = false;
+		
+		int minCand;
+		int[] minInd;
+		
+		
+		solveRecursion : while(true){
+			
+			if(branchChangeStacked){ // change branch to next cell/candidate
+				// System.out.println("todo : branch change");
+				int possCnt = 0;
+				for(int k=1; k<=solBool.length; k++){
+					if(solBool[branchCell[branchCnt][0]]
+							  [branchCell[branchCnt][1]][k]) possCnt++;
+				}
+				if(possCnt<=0){
+					if(branchCnt<=0){
+						break solveRecursion;
+					}
+					branchRollBack(--branchCnt);
+					continue solveRecursion;
+				}
+				
+				int tgNum = rand.nextInt(possCnt)+1;
+				int n=0;
+				for(int j=1; j<=tgNum; j++){
+					do{
+						n++;
+					}while(!solBool[branchCell[branchCnt][0]]
+								   [branchCell[branchCnt][1]][n]);
+				}branchCell[branchCnt][2] = n;
+				
+				erasePencilMark(branchCell[branchCnt][0],
+								branchCell[branchCnt][1],
+								branchCell[branchCnt][2]);
+				branchChangeStacked = false;
+			}
+			
+			minCand = solBool.length+1;
+			int cand;
+			minInd = new int[2];
+			
+			for(int i=0; i<solBool.length; i++){
+				for(int j=0; j<solBool[i].length; j++){
+					if(solBool[i][j][0]) continue;
+					cand = 0;
+					for(int n=1; n<solBool[i][j].length; n++){
+						if(solBool[i][j][n]) cand++;
+					}
+					if(cand == 0){
+						if(branchCnt <= 0){ // unsolvable
+							System.out.println("Search failure : no possible grid");
+							break solveRecursion;
+						}else{ // no solution on this branch
+							branchRollBack(--branchCnt);
+							// System.out.printf("\tnow depth %d\n", branchCnt);
+							branchChangeStacked = true;
+							continue solveRecursion;
+						}
+					}else if(cand == 1){ // cell fixed
+						int n=1;
+						while(!solBool[i][j][n]) n++;
+						erasePencilMark(i, j, n);
+						// System.out.printf("cell %d %d fixed : %d\n", i, j, n);
+						continue solveRecursion;
+					}else{ // cand>1; is backtracking pivot cell?
+						if(cand >= minCand) continue;
+						minCand = cand;
+						minInd[0] = i;
+						minInd[1] = j;
+					}
+				}
+			}if(minCand > solBool.length){ // already solved
+				// the only way of breaking recursion with solution
+				// System.out.println("Search success");
+				firstSolBool = new boolean[solBool.length][solBool[0].length][];
+				for(int r=0; r<firstSolBool.length; r++){
+					for(int c=0; c<firstSolBool[r].length; c++){
+						firstSolBool[r][c] = solBool[r][c].clone();
+					}
+				}
+				break solveRecursion;
+			}
+			
+			// backtracking
+			
+			branchImage[branchCnt] = new boolean[solBool.length][solBool[0].length][];
+			for(int r=0; r<solBool.length; r++){
+				for(int c=0; c<solBool[r].length; c++){
+					branchImage[branchCnt][r][c] = solBool[r][c].clone();
+				}
+			}
+			
+			branchCell[branchCnt] = new int[3];
+			branchCell[branchCnt][0] = minInd[0];
+			branchCell[branchCnt][1] = minInd[1];
+			// System.out.println(minSetCnt);
+			
+			int tgNum = rand.nextInt(minCand)+1;
+			int n=0;
+			for(int j=1; j<=tgNum; j++){
+				do{
+					n++;
+				}while(!solBool[minInd[0]][minInd[1]][n]);
+			}branchCell[branchCnt][2] = n;
+			
+			branchCnt++;
+			erasePencilMark(minInd[0], minInd[1], n);
+			branchChangeStacked = false;
+		}
+		isSolved = true;
+	}
+	
 	//-------------------------------from here, solving method------------------------------
 	
 	protected int[] solveSudokuInfo(boolean ifMultSol){
 		
-		int[] sdkInfo = {0,0}; // {sol cnt, branch diff}; teq depth later implementable...maybe
+		int[] sdkInfo = {0,0,0}; // {sol cnt, branch diff, empty cell cnt}
+		// teq depth later implementable...maybe
 		// play on solBool when searching solution
 		if(!isValid){
 			System.out.println("Invalid sudoku");
@@ -140,14 +289,14 @@ public class Sudoku {
 					erasePencilMark(i, j, n);
 				}
 			}
-		}
+		}sdkInfo[2] = emptyCellCnt;
 		
 		// solve...
 		int breakCrit = ifMultSol ? 2 : 1;
 		
 		branchImage = new boolean[emptyCellCnt][][][];
 		branchCell = new int[emptyCellCnt][];
-		branchFactor = new int[emptyCellCnt];
+		// branchFactor = new int[emptyCellCnt];
 		// int firstBranchFactor = 0;
 		int branchCnt = 0;
 		boolean branchChangeStacked = false;
@@ -168,7 +317,9 @@ public class Sudoku {
 				switch(branchCell[branchCnt][3]){
 					case -1 : // cell candidate base
 						while(n<=solBool.length){
-							if(solBool[branchCell[branchCnt][0]][branchCell[branchCnt][1]][n]) break;
+							if(solBool[branchCell[branchCnt][0]]
+									  [branchCell[branchCnt][1]][n])
+								break;
 							n++;
 						}if(n>solBool.length){
 							if(branchCnt<=0){
@@ -185,7 +336,8 @@ public class Sudoku {
 						int box = branchCell[branchCnt][4];
 						int bi=0;
 						while(bi<BOX_CELL[box].length){
-							if(solBool[BOX_CELL[box][bi][0]][BOX_CELL[box][bi][1]][n]) break;
+							if(solBool[BOX_CELL[box][bi][0]][BOX_CELL[box][bi][1]][n])
+								break;
 							bi++;
 						}if(bi>=solBool.length){
 							if(branchCnt<=0){
@@ -234,7 +386,9 @@ public class Sudoku {
 						branchCell[branchCnt][0] = ri;
 						branchCell[branchCnt][1] = col;
 				}
-				erasePencilMark(branchCell[branchCnt][0], branchCell[branchCnt][1], branchCell[branchCnt][2]);
+				erasePencilMark(branchCell[branchCnt][0],
+								branchCell[branchCnt][1],
+								branchCell[branchCnt][2]);
 				branchChangeStacked = false;
 			}
 			
@@ -271,19 +425,21 @@ public class Sudoku {
 						minInd[1] = j;
 					}
 				}
-			}if(minCand > solBool.length){ // already solved; the only way of breaking recursion with solution
+			}if(minCand > solBool.length){ // already solved
+				// !!!!!!!!! the only way of breaking recursion with solution !!!!!!!!!
 				sdkInfo[0]++;
 				if(sdkInfo[0] == 1){
-					System.out.println("SOLUTION FOUND");
+					// System.out.println("SOLUTION FOUND");
 					firstSolBool = new boolean[solBool.length][solBool[0].length][];
 					for(int r=0; r<firstSolBool.length; r++){
 						for(int c=0; c<firstSolBool[r].length; c++){
 							firstSolBool[r][c] = solBool[r][c].clone();
 						}
-					}
+					}/*
 					for(int br=0; branchFactor[br]>0; br++){
 						sdkInfo[1] += (branchFactor[br]-1)*(branchFactor[br]-1);
-					}
+					}*/
+					sdkInfo[1] = branchDiff;
 				}
 				if(sdkInfo[0] >= breakCrit){
 					// sdkInfo[2]=firstBranchFactor;
@@ -448,14 +604,16 @@ public class Sudoku {
 				}
 			}
 			
-			if(minCand > minSetCnt){ // set-search based branching
+			if(minCand <= minSetCnt){ // set-search based branching
 				branchCell[branchCnt] = new int[4];
 				branchCell[branchCnt][0] = minInd[0];
 				branchCell[branchCnt][1] = minInd[1];
 				branchCell[branchCnt][3] = -1;
-				if(branchFactor[branchCnt] < minSetCnt){
-					branchFactor[branchCnt] = minSetCnt;
-				}
+				/*
+				if(branchFactor[branchCnt] < minCand){
+					branchFactor[branchCnt] = minCand;
+				}*/
+				branchDiff += (minCand-1)*(minCand-1);
 				// System.out.println(minSetCnt);
 				for(int n=1; n<=solBool.length; n++){
 					if(solBool[minInd[0]][minInd[1]][n]){
@@ -469,17 +627,23 @@ public class Sudoku {
 				branchCell[branchCnt][2] = minSetInfo[0];
 				branchCell[branchCnt][3] = minSetInfo[1];
 				branchCell[branchCnt][4] = minSetInfo[2];
-				if(branchFactor[branchCnt] < minCand){
-					branchFactor[branchCnt] = minCand;
-				}
+				/*
+				if(branchFactor[branchCnt] < minSetCnt){
+					branchFactor[branchCnt] = minSetCnt;
+				}*/
+				branchDiff += (minSetCnt-1)*(minSetCnt-1);
 				// System.out.println(minCand);
 				switch(minSetInfo[1]){
 					case 0 :
 						for(int i=0; i<BOX_CELL[minSetInfo[2]].length; i++){
-							if(solBool[BOX_CELL[minSetInfo[2]][i][0]][BOX_CELL[minSetInfo[2]][i][1]][minSetInfo[0]]){
+							if(solBool[BOX_CELL[minSetInfo[2]][i][0]]
+									  [BOX_CELL[minSetInfo[2]][i][1]][minSetInfo[0]]){
 								branchCell[branchCnt][0] = BOX_CELL[minSetInfo[2]][i][0];
 								branchCell[branchCnt][1] = BOX_CELL[minSetInfo[2]][i][1];
-								// System.out.printf("num %d box %d %d\n", minSetInfo[0], minSetInfo[2], i);
+								/*
+								System.out.printf("num %d box %d %d\n",
+												  minSetInfo[0], minSetInfo[2], i);
+								*/
 								break;
 							}
 						}break;
@@ -488,7 +652,10 @@ public class Sudoku {
 							if(solBool[minSetInfo[2]][c][minSetInfo[0]]){
 								branchCell[branchCnt][0] = minSetInfo[2];
 								branchCell[branchCnt][1] = c;
-								// System.out.printf("num %d row %d %d\n", minSetInfo[0], minSetInfo[2], c);
+								/*
+								System.out.printf("num %d row %d %d\n",
+												  minSetInfo[0], minSetInfo[2], c);
+								*/
 								break;
 							}
 						}break;
@@ -497,13 +664,21 @@ public class Sudoku {
 							if(solBool[r][minSetInfo[2]][minSetInfo[0]]){
 								branchCell[branchCnt][0] = r;
 								branchCell[branchCnt][1] = minSetInfo[2];
-								// System.out.printf("num %d col %d %d\n", minSetInfo[0], minSetInfo[2], r);
+								/*
+								System.out.printf("num %d col %d %d\n",
+												  minSetInfo[0], minSetInfo[2], r);
+								*/
 								break;
 							}
 						}break;
 				}
-			}// System.out.printf("cell %d %d num %d\n", branchCell[branchCnt][0], branchCell[branchCnt][1], branchCell[branchCnt][2]);
-			erasePencilMark(branchCell[branchCnt][0], branchCell[branchCnt][1], branchCell[branchCnt][2]);
+			}/*
+			System.out.printf("cell %d %d num %d\n", branchCell[branchCnt][0],
+			branchCell[branchCnt][1], branchCell[branchCnt][2]);
+			*/
+			erasePencilMark(branchCell[branchCnt][0],
+							branchCell[branchCnt][1],
+							branchCell[branchCnt][2]);
 			branchCnt++;
 			// System.out.printf("\tnow depth %d\n", branchCnt);
 		}
@@ -511,8 +686,11 @@ public class Sudoku {
 		if(sdkInfo[0]==0){
 			System.out.println("No solution");
 		}*/
+		isSolved = true;
 		return sdkInfo;
 	}
+	
+	// -----------------------from here, methods for solveSudokuInfo-----------------
 	
 	private void erasePencilMark(int i, int j, int n){
 		int box = CELL_BOX[i][j];
@@ -537,16 +715,16 @@ public class Sudoku {
 	private void branchRollBack(int branchInd){
 		/*
 		System.out.printf("rollback to depth %d; cell %d %d num %d fail\n", branchInd,
-						  branchCell[branchInd][0], branchCell[branchInd][1], branchCell[branchInd][2]);
+						  branchCell[branchInd][0],
+						  branchCell[branchInd][1], branchCell[branchInd][2]);
 		*/
 		for(int ri=0; ri<solBool.length; ri++){
 			for(int ci=0; ci<solBool[ri].length; ci++){
 				solBool[ri][ci] = branchImage[branchInd][ri][ci].clone();
 			}
-		}solBool[branchCell[branchInd][0]][branchCell[branchInd][1]][branchCell[branchInd][2]] = false;
+		}solBool[branchCell[branchInd][0]]
+				[branchCell[branchInd][1]][branchCell[branchInd][2]] = false;
 	}
-	
-	// -----------------------until here, methods for solveSudokuInfo----------------------------
 	
 	protected void resetSudoku(){
 		for(int i=0; i<sdkBool.length; i++){
@@ -558,20 +736,46 @@ public class Sudoku {
 		}
 	}
 	
+	// -----------------from here, parsing & printing methods------------------
+	
+	public int[][] solutionInIntArray(){
+		if(!isSolved){
+			System.out.println("Not solved yet");
+			return new int[sdkBool.length][sdkBool[0].length];
+		}
+		
+		int[][] solArr = new int[firstSolBool.length][firstSolBool[0].length];
+		for(int r=0; r<firstSolBool.length; r++){
+			for(int c=0; c<firstSolBool[r].length; c++){
+				if(!firstSolBool[r][c][0]){
+					System.out.println("Solution incomplete");
+					return solArr;
+				}for(int n=1; n<firstSolBool[r][c].length; n++){
+					if(firstSolBool[r][c][n]){
+						solArr[r][c] = n;
+						break;
+					}
+				}
+			}
+		}
+		return solArr;
+		
+	}
+	
 	public void printSudoku(){
-		System.out.println("┏━━━┯━━━┯━━━┳━━━┯━━━┯━━━┳━━━┯━━━┯━━━┓");
+		System.out.println("┏━┯━┯━┳━┯━┯━┳━┯━┯━┓");
 		for(int i=0; i<sdkBool.length; i++){
 			System.out.print("┃");
 			for(int j=0; j<sdkBool[i].length; j++){
 				if(sdkBool[i][j][0]){
 					for(int n=1; n<sdkBool[i][j].length; n++){
 						if(sdkBool[i][j][n]){
-							System.out.printf(" %d ", n);
+							System.out.print((char)('０'+n));
 							break;
 						}
 					}
 				}else{
-					System.out.print("   ");
+					System.out.print("  ");
 				}
 				if(j%3==2){
 					System.out.print("┃");
@@ -580,11 +784,11 @@ public class Sudoku {
 				}
 			}System.out.println();
 			if(i%3!=2){
-				System.out.println("┠───┼───┼───╂───┼───┼───╂───┼───┼───┨");
+				System.out.println("┠─┼─┼─╂─┼─┼─╂─┼─┼─┨");
 			}else if(i==sdkBool.length-1){
-				System.out.println("┗━━━┷━━━┷━━━┻━━━┷━━━┷━━━┻━━━┷━━━┷━━━┛");
+				System.out.println("┗━┷━┷━┻━┷━┷━┻━┷━┷━┛");
 			}else{
-				System.out.println("┣━━━┿━━━┿━━━╋━━━┿━━━┿━━━╋━━━┿━━━┿━━━┫");
+				System.out.println("┣━┿━┿━╋━┿━┿━╋━┿━┿━┫");
 			}
 		}
 	}
@@ -594,13 +798,13 @@ public class Sudoku {
 		int[] sdkInfo = solveSudokuInfo(ifMultSol);
 		long endTime = System.currentTimeMillis();
 		
-		System.out.println("┏━━━┯━━━┯━━━┳━━━┯━━━┯━━━┳━━━┯━━━┯━━━┓");
+		System.out.println("┏━┯━┯━┳━┯━┯━┳━┯━┯━┓");
 		for(int i=0; i<firstSolBool.length; i++){
 			System.out.print("┃");
 			for(int j=0; j<firstSolBool[i].length; j++){
 				for(int n=1; n<firstSolBool[i][j].length; n++){
 					if(firstSolBool[i][j][n]){
-						System.out.printf(" %d ", n);
+						System.out.print((char)('０'+n));
 						break;
 					}
 				}
@@ -611,11 +815,11 @@ public class Sudoku {
 				}
 			}System.out.println();
 			if(i%3!=2){
-				System.out.println("┠───┼───┼───╂───┼───┼───╂───┼───┼───┨");
+				System.out.println("┠─┼─┼─╂─┼─┼─╂─┼─┼─┨");
 			}else if(i==firstSolBool.length-1){
-				System.out.println("┗━━━┷━━━┷━━━┻━━━┷━━━┷━━━┻━━━┷━━━┷━━━┛");
+				System.out.println("┗━┷━┷━┻━┷━┷━┻━┷━┷━┛");
 			}else{
-				System.out.println("┣━━━┿━━━┿━━━╋━━━┿━━━┿━━━╋━━━┿━━━┿━━━┫");
+				System.out.println("┣━┿━┿━╋━┿━┿━╋━┿━┿━┫");
 			}
 		}
 		
@@ -632,8 +836,8 @@ public class Sudoku {
 			case 2 :
 				System.out.println("Multiple solution");
 		}
-		System.out.printf("branch difficulty : %d\n", sdkInfo[1]);
+		System.out.printf("difficulty estimation : %d\n", sdkInfo[1]*100 + sdkInfo[2]);
 		// System.out.printf("required technique level : %d\n", sdkInfo[2]);
-		System.out.printf("total %6.5fs taken\n", (endTime-startTime)/1000.0);
+		System.out.printf("total %4.3fs taken\n", (endTime-startTime)/1000.0);
 	}
 }
