@@ -24,7 +24,7 @@ public class TestMain{
 			{5,0,0,2,0,0,0,0,0},
 			{0,0,0,0,1,0,0,8,7},
 			{0,0,4,0,8,9,0,3,5}
-		}; // harder one */
+		}; // harder one 
 		int[][] rawSudoku = {
 			{0,0,0,0,0,0,0,0,0},
 			{0,0,0,0,0,3,0,8,5},
@@ -35,8 +35,7 @@ public class TestMain{
 			{5,0,0,0,0,0,0,7,3},
 			{0,0,2,0,1,0,0,0,0},
 			{0,0,0,0,4,0,0,0,9}
-		}; // all easy
-		/*
+		}; // all easy */
 		int[][] rawSudoku = {
 			{8,0,0,0,0,0,0,0,0},
 			{0,0,3,6,0,0,0,0,0},
@@ -59,7 +58,7 @@ public class TestMain{
 			{0,0,2,9,4,0,0,0,5},
 			{4,0,6,0,3,2,8,0,7},
 			{0,0,0,0,0,0,2,0,0}
-		};*/
+		}; */
 		Sudoku sudoku = new Sudoku(rawSudoku);
 		sudoku.printSudoku();
 		sudoku.printSolution(true);
