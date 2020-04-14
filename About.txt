@@ -1,5 +1,7 @@
-Sudoku game project with quick solving & generating
+Sudoku quick solution search & generating project
+The main idea source of this code is as follows at the bottom of this file.
 
 스도쿠의 빠른 솔빙과 생성을 위한 프로젝트입니다.
 해당 소스의 아이디어는 아래 사이트를 참고한 것임을 밝힙니다.
+
 https://dlbeer.co.nz/articles/sudoku.html
