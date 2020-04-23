@@ -38,7 +38,7 @@ public class SudokuGenGame {
 			System.out.println("\nWhich task do you want to do? (1, 2 or 0)");
 			System.out.println("\t(1) Generate a new charming piece of Sudoku");
 			System.out.println("\t(2) Analyze and solve a Sudoku I already have");
-			System.out.println("\t(0) Exit this game\n");
+			System.out.println("\t(0) Exit this game");
 			
 			choice = -1;
 			while(choice < 0){
@@ -72,7 +72,7 @@ public class SudokuGenGame {
 						System.out.println("\t(5) Vertical & horizontal reflexive symmetry");
 						System.out.println("\t(6) Diagonal reflexive symmetry (1-way)");
 						System.out.println("\t(7) Diagonal reflexive symmetry (2-way)");
-						System.out.println("\t(0) Go back to task choice\n");
+						System.out.println("\t(0) Go back to task choice");
 						while(true){
 							System.out.print(">>>>>>>> ");
 							choiceStr = sc.nextLine();
@@ -90,7 +90,7 @@ public class SudokuGenGame {
 						System.out.println("\nHow hard may it be at most? (0 to 9; any other input to go back)");
 						System.out.println("\t(0) easy - (1) handy - (2) moderate - (3) tricky");
 						System.out.println("\t- (4) challenging - (5) hard - (6) complicated");
-						System.out.println("\t- (7) evil - (8) fiendish - (9) divine\n");
+						System.out.println("\t- (7) evil - (8) fiendish - (9) divine");
 						while(true){
 							System.out.print(">>>>>>>> ");
 							choiceStr = sc.nextLine();
@@ -113,7 +113,7 @@ public class SudokuGenGame {
 						
 						int diffIndic = 0;
 						int tempDiff;
-						System.out.print("Generating one nice and lovely piece of Sudoku");
+						System.out.print("\nGenerating one nice and lovely piece of Sudoku");
 						for(int search = 1; search<=maximaSearchCnt; search++){
 							if(search%(maximaSearchCnt/10)==0){
 								System.out.print(".");

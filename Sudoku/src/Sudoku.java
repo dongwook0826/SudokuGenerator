@@ -323,6 +323,7 @@ public class Sudoku {
 							n++;
 						}if(n>solBool.length){
 							if(branchCnt<=0){
+								sdkInfo[1] = branchDiff;
 								break solveRecursion;
 							}
 							branchRollBack(--branchCnt);
@@ -341,6 +342,7 @@ public class Sudoku {
 							bi++;
 						}if(bi>=solBool.length){
 							if(branchCnt<=0){
+								sdkInfo[1] = branchDiff;
 								break solveRecursion;
 							}
 							branchRollBack(--branchCnt);
@@ -359,6 +361,7 @@ public class Sudoku {
 							ci++;
 						}if(ci>=solBool[row].length){
 							if(branchCnt<=0){
+								sdkInfo[1] = branchDiff;
 								break solveRecursion;
 							}
 							branchRollBack(--branchCnt);
@@ -377,6 +380,7 @@ public class Sudoku {
 							ri++;
 						}if(ri>=solBool.length){
 							if(branchCnt<=0){
+								sdkInfo[1] = branchDiff;
 								break solveRecursion;
 							}
 							branchRollBack(--branchCnt);
@@ -405,6 +409,7 @@ public class Sudoku {
 					}
 					if(cand == 0){
 						if(branchCnt <= 0){ // unsolvable
+							sdkInfo[1] = branchDiff;
 							break solveRecursion;
 						}else{ // no solution on this branch
 							branchRollBack(--branchCnt);
@@ -439,14 +444,16 @@ public class Sudoku {
 					for(int br=0; branchFactor[br]>0; br++){
 						sdkInfo[1] += (branchFactor[br]-1)*(branchFactor[br]-1);
 					}*/
-					sdkInfo[1] = branchDiff;
+					// sdkInfo[1] = branchDiff;
 				}
 				if(sdkInfo[0] >= breakCrit){
 					// sdkInfo[2]=firstBranchFactor;
+					sdkInfo[1] = branchDiff;
 					break solveRecursion;
 				}else{ // sdkInfo[0] == 1, breakCrit == 2
 					if(branchCnt<=0){ // solution unique
 						// sdkInfo[1]=firstBranchFactor;
+						sdkInfo[1] = branchDiff;
 						break solveRecursion;
 					}
 					branchRollBack(--branchCnt);
@@ -488,6 +495,7 @@ public class Sudoku {
 					}
 					if(setCnt == 0){
 						if(branchCnt <= 0){ // unsolvable
+							sdkInfo[1] = branchDiff;
 							break solveRecursion;
 						}else{ // no solution on this branch
 							branchRollBack(--branchCnt);
@@ -528,6 +536,7 @@ public class Sudoku {
 					}
 					if(setCnt == 0){
 						if(branchCnt <= 0){ // unsolvable
+							sdkInfo[1] = branchDiff;
 							break solveRecursion;
 						}else{ // no solution on this branch
 							branchRollBack(--branchCnt);
@@ -568,6 +577,7 @@ public class Sudoku {
 					}
 					if(setCnt == 0){
 						if(branchCnt <= 0){ // unsolvable
+							sdkInfo[1] = branchDiff;
 							break solveRecursion;
 						}else{ // no solution on this branch
 							branchRollBack(--branchCnt);
@@ -798,6 +808,11 @@ public class Sudoku {
 		int[] sdkInfo = solveSudokuInfo(ifMultSol);
 		long endTime = System.currentTimeMillis();
 		
+		if(sdkInfo[0] <= 0){
+			System.out.println("No solution");
+			return;
+		}
+		
 		System.out.println("┏━┯━┯━┳━┯━┯━┳━┯━┯━┓");
 		for(int i=0; i<firstSolBool.length; i++){
 			System.out.print("┃");
@@ -825,7 +840,7 @@ public class Sudoku {
 		
 		switch(sdkInfo[0]){
 			case 0 :
-				System.out.println("No solution");
+				// System.out.println("No solution");
 				break;
 			case 1 :
 				if(ifMultSol){

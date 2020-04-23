@@ -30,5 +30,7 @@ public class DiffStatMain {
 				System.out.print("*");
 			}System.out.println();
 		}
+		
+		
 	}
 }
